@@ -1,0 +1,190 @@
+import React,{ useState,useEffect,useContext,useReducer } from "react";
+import ReactDOM from "react-dom";
+import Button from "@material-ui/core/Button";
+import TextField from '@material-ui/core/TextField';
+import Dialog from '@material-ui/core/Dialog';
+import DialogActions from '@material-ui/core/DialogActions';
+import DialogContent from '@material-ui/core/DialogContent';
+import DialogContentText from '@material-ui/core/DialogContentText';
+import DialogTitle from '@material-ui/core/DialogTitle';
+
+const Context= React.createContext("g");
+function reducer( state,action ){
+  switch( action.type ){
+    case 'add':
+      return [...state,{id:Date.now(),title:action.payload,open:false,delOpen:false,checked: false}];
+    case 'delete':
+      return state.filter( f => f.id !== action.payload );
+    case 'delOpen':
+        return state.map(m => {
+          if(m.id === action.payload) {
+            return { ...m,delOpen: !m.delOpen };
+          }else{
+            return m;
+          }
+        });
+    case 'edit':
+      return state.map(m => {
+        if(m.id === action.payload) {
+          return { ...m,open: !m.open };
+        }else{
+          return m;
+        }
+      });
+    case 'close': 
+      return state.map(m => {
+        if(m.id === action.payload) {
+          return { ...m,open: !m.open };
+        }else{
+          return m;
+        }
+      });
+    case 'newsVal':
+        return state.map(m => {
+          if(m.id === action.payload) {
+            return { ...m,title: action.news };
+          }else{
+            return m;
+          }
+        });
+    case 'chek':
+     return state.map(m => {
+      if(m.id === action.payload) {
+        return { ...m,checked: !m.checked };
+      }else{
+        return m;
+      }
+    });
+    default:
+      return state;
+  }
+}
+function App() {
+  let [state,dispatch]= useReducer(reducer,JSON.parse(localStorage.getItem('todos'))||[]);
+  const [todoTitle,setTodoTitle]=useState('');
+  const add=()=>{
+    dispatch({
+      type: 'add',
+      payload: todoTitle
+    });
+    setTodoTitle('');
+  }
+  useEffect(()=>{
+     localStorage.setItem('todos',JSON.stringify(state));
+   },[state]);
+  return (
+    <Context.Provider value={{ dispatch }}>
+      <div>
+        <input 
+          value={todoTitle}
+          onChange={(e)=> setTodoTitle(e.target.value)}
+          />
+        <div>{todoTitle}</div>
+        <Button 
+        onClick={()=>add()}
+        variant="contained" color="primary">
+          Add
+        </Button>
+        <ul>
+          <Todo it={state}/>
+        </ul>
+      </div>
+    </Context.Provider>
+  );
+}
+
+function Todo({ it }) {
+  const {dispatch}=useContext(Context);
+  return (
+    <div>
+      {console.log( it )}
+     { it.map( i=> <li key={i.id}>
+      <p onClick={()=>dispatch({
+       type:'chek',
+       payload: i.id
+       })}>{ i.title }
+      { i.checked && <i>checked</i> }
+     </p>
+     <button onClick={()=>dispatch({
+       type:'edit',
+       payload: i.id
+       })}>edit</button>
+     <button onClick={()=>dispatch({
+       type:'delOpen',
+       payload: i.id
+       })}>delete</button>
+       { i.open  && <p>Open</p> }
+       { i.delOpen  && <p>DelOpen</p> }
+      <Dialog 
+        open={i.open} 
+        onClose={()=>dispatch({
+            type:'close',
+            payload: i.id
+        })} 
+        aria-labelledby="form-dialog-title">
+          <DialogTitle id="form-dialog-title"> 
+            Want to change the value?
+          </DialogTitle>
+          <DialogContent>
+            <DialogContentText>
+               Want to change the value?
+            </DialogContentText>
+            <TextField
+              autoFocus
+              margin="dense"
+              id="name"
+              label="Email Address"
+              type="email"
+              fullWidth
+              value={i.title}
+              onChange={(event)=>dispatch({
+                type:'newsVal',
+                payload: i.id,
+                news: event.target.value
+                })}
+            />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={()=>dispatch({
+            type:'close',
+            payload: i.id
+            })} color="primary">
+            Cancel
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      <Dialog
+        open={i.delOpen}
+        onClose={()=>dispatch({
+          type:'delOpen',
+          payload: i.id
+      })}
+        aria-labelledby="alert-dialog-title"
+        aria-describedby="alert-dialog-description"
+      >
+        <DialogTitle id="alert-dialog-title">{"Are you sure you want to delete?"}</DialogTitle>
+        <DialogActions>
+          <p>{i.title}</p>
+          <Button onClick={
+            ()=>dispatch({
+              type:'delOpen',
+              payload: i.id
+          })
+          } color="primary">
+            Cancel
+          </Button>
+          <Button onClick={()=>dispatch({
+            type:'delete',
+            payload: i.id
+          })} color="primary" autoFocus>
+            Delete
+          </Button>
+        </DialogActions>
+      </Dialog>
+     </li> ) }
+    </div>
+  );
+}
+
+ReactDOM.render(<App />, document.querySelector("#app"));
